@@ -150,6 +150,18 @@
             border-color: #4cd964;
         }
         
+        .timer-button.countdown {
+            background: rgba(255, 59, 48, 0.3);
+            border-color: #ff3b30;
+            animation: pulse 1s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        
         .tap-button:active, .timer-button:active {
             transform: scale(0.95);
             background: rgba(255, 255, 255, 0.3);
@@ -218,6 +230,14 @@
             font-size: 24px;
             font-weight: 600;
             margin-bottom: 10px;
+            text-align: center;
+        }
+        
+        .countdown-display {
+            font-size: 18px;
+            margin-top: 10px;
+            min-height: 25px;
+            font-weight: 600;
             text-align: center;
         }
     </style>
@@ -290,7 +310,7 @@
         
         <!-- Page 2: Timer -->
         <div class="page page-2" id="page2">
-            <div class="page-title">Timer</div>
+            <div class="page-title">30-Second Timer</div>
             
             <div class="battery-container">
                 <div class="battery-wrapper">
@@ -337,8 +357,9 @@
             
             <div class="timer-container">
                 <div class="timer-button" id="timerButton">
-                    <span id="timerDisplay">00:00</span>
+                    <span id="timerDisplay">30</span>
                 </div>
+                <div class="countdown-display" id="countdownDisplay"></div>
             </div>
             
             <div class="timer-controls">
@@ -405,10 +426,12 @@
         });
 
         // Timer functionality
-        let timerSeconds = 0;
+        let timerSeconds = 30;
         let timerInterval = null;
         let isTimerRunning = false;
+        let currentCycle = 0;
         const timerDisplay = document.getElementById('timerDisplay');
+        const countdownDisplay = document.getElementById('countdownDisplay');
         const timerButton = document.getElementById('timerButton');
         const timerResetButton = document.getElementById('timerResetButton');
         const stopButton = document.getElementById('stopButton');
@@ -421,16 +444,78 @@
             }
         }
 
-        // Format time as MM:SS
-        function formatTime(seconds) {
-            const mins = Math.floor(seconds / 60);
-            const secs = seconds % 60;
-            return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        // Audio context for countdown sounds
+        let audioContext;
+        let oscillator;
+        
+        function playCountdownSound(number) {
+            if (!audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            
+            // Create oscillator
+            oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            // Different frequencies for different numbers
+            let frequency;
+            if (number <= 5) {
+                frequency = 800; // High pitch for last 5 seconds
+            } else if (number <= 10) {
+                frequency = 600; // Medium-high pitch
+            } else {
+                frequency = 400; // Lower pitch for higher numbers
+            }
+            
+            oscillator.type = 'sine';
+            oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime);
+            
+            // Configure volume envelope
+            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            // Play the sound
+            oscillator.start();
+            oscillator.stop(audioContext.currentTime + 0.3);
         }
 
-        // Update timer battery bars (each bar = 30 seconds)
+        // Speak the countdown number
+        function speakCountdown(number) {
+            if ('speechSynthesis' in window) {
+                const utterance = new SpeechSynthesisUtterance(number.toString());
+                utterance.rate = 1.2;
+                utterance.pitch = 1;
+                utterance.volume = 0.7;
+                window.speechSynthesis.speak(utterance);
+            }
+        }
+
+        // Update timer display and handle countdown
+        function updateTimerDisplay() {
+            timerDisplay.textContent = timerSeconds;
+            
+            // Show countdown text for last 10 seconds
+            if (timerSeconds <= 10) {
+                countdownDisplay.textContent = `${timerSeconds}...`;
+                playCountdownSound(timerSeconds);
+                speakCountdown(timerSeconds);
+                
+                // Add visual effect for countdown
+                if (timerSeconds <= 5) {
+                    timerButton.classList.add('countdown');
+                }
+            } else {
+                countdownDisplay.textContent = '';
+                timerButton.classList.remove('countdown');
+            }
+        }
+
+        // Update timer battery bars (each bar = 30 seconds in a cycle)
         function updateTimerBatteries() {
-            const activeBars = Math.floor(timerSeconds / 30);
+            const activeBars = currentCycle % 20; // 4 batteries × 5 bars = 20 total bars
             
             timerBatteryBars.forEach((bar, index) => {
                 if (index < activeBars) {
@@ -448,9 +533,22 @@
                 isTimerRunning = true;
                 timerButton.classList.add('running');
                 timerInterval = setInterval(() => {
-                    timerSeconds++;
-                    timerDisplay.textContent = formatTime(timerSeconds);
-                    updateTimerBatteries();
+                    timerSeconds--;
+                    updateTimerDisplay();
+                    
+                    // When timer reaches 0, reset to 30 and increment cycle
+                    if (timerSeconds === 0) {
+                        timerSeconds = 30;
+                        currentCycle++;
+                        updateTimerBatteries();
+                        
+                        // Play completion sound
+                        playCountdownSound(0);
+                        if ('speechSynthesis' in window) {
+                            const utterance = new SpeechSynthesisUtterance("Time's up!");
+                            window.speechSynthesis.speak(utterance);
+                        }
+                    }
                 }, 1000);
             }
         });
@@ -460,6 +558,8 @@
             if (isTimerRunning) {
                 isTimerRunning = false;
                 timerButton.classList.remove('running');
+                timerButton.classList.remove('countdown');
+                countdownDisplay.textContent = 'Paused';
                 clearInterval(timerInterval);
             }
         });
@@ -468,10 +568,13 @@
         timerResetButton.addEventListener('click', () => {
             isTimerRunning = false;
             timerButton.classList.remove('running');
+            timerButton.classList.remove('countdown');
             clearInterval(timerInterval);
-            timerSeconds = 0;
-            timerDisplay.textContent = formatTime(timerSeconds);
+            timerSeconds = 30;
+            currentCycle = 0;
+            updateTimerDisplay();
             updateTimerBatteries();
+            countdownDisplay.textContent = '';
         });
 
         // Swipe navigation - improved for both directions
@@ -525,6 +628,7 @@
 
         // Initialize both pages
         updateCounterBatteries();
+        updateTimerDisplay();
         updateTimerBatteries();
     </script>
 </body>
