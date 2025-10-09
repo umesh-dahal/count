@@ -88,7 +88,7 @@
         
         .battery {
             width: 50px;
-            height: 100px;
+            height: 120px;
             background-color: rgba(255, 255, 255, 0.2);
             border-radius: 10px;
             position: relative;
@@ -100,7 +100,7 @@
         }
         
         .battery-bar {
-            height: 15px;
+            height: 18px;
             background-color: rgba(255, 255, 255, 0.3);
             border-radius: 4px;
             transition: background-color 0.3s ease;
@@ -240,6 +240,7 @@
                         <div class="battery-bar" id="counter-battery1-bar2"></div>
                         <div class="battery-bar" id="counter-battery1-bar3"></div>
                         <div class="battery-bar" id="counter-battery1-bar4"></div>
+                        <div class="battery-bar" id="counter-battery1-bar5"></div>
                     </div>
                     <div class="battery-label">Battery 1</div>
                 </div>
@@ -249,6 +250,7 @@
                         <div class="battery-bar" id="counter-battery2-bar2"></div>
                         <div class="battery-bar" id="counter-battery2-bar3"></div>
                         <div class="battery-bar" id="counter-battery2-bar4"></div>
+                        <div class="battery-bar" id="counter-battery2-bar5"></div>
                     </div>
                     <div class="battery-label">Battery 2</div>
                 </div>
@@ -258,6 +260,7 @@
                         <div class="battery-bar" id="counter-battery3-bar2"></div>
                         <div class="battery-bar" id="counter-battery3-bar3"></div>
                         <div class="battery-bar" id="counter-battery3-bar4"></div>
+                        <div class="battery-bar" id="counter-battery3-bar5"></div>
                     </div>
                     <div class="battery-label">Battery 3</div>
                 </div>
@@ -267,6 +270,7 @@
                         <div class="battery-bar" id="counter-battery4-bar2"></div>
                         <div class="battery-bar" id="counter-battery4-bar3"></div>
                         <div class="battery-bar" id="counter-battery4-bar4"></div>
+                        <div class="battery-bar" id="counter-battery4-bar5"></div>
                     </div>
                     <div class="battery-label">Battery 4</div>
                 </div>
@@ -295,6 +299,7 @@
                         <div class="battery-bar" id="timer-battery1-bar2"></div>
                         <div class="battery-bar" id="timer-battery1-bar3"></div>
                         <div class="battery-bar" id="timer-battery1-bar4"></div>
+                        <div class="battery-bar" id="timer-battery1-bar5"></div>
                     </div>
                     <div class="battery-label">Battery 1</div>
                 </div>
@@ -304,6 +309,7 @@
                         <div class="battery-bar" id="timer-battery2-bar2"></div>
                         <div class="battery-bar" id="timer-battery2-bar3"></div>
                         <div class="battery-bar" id="timer-battery2-bar4"></div>
+                        <div class="battery-bar" id="timer-battery2-bar5"></div>
                     </div>
                     <div class="battery-label">Battery 2</div>
                 </div>
@@ -313,6 +319,7 @@
                         <div class="battery-bar" id="timer-battery3-bar2"></div>
                         <div class="battery-bar" id="timer-battery3-bar3"></div>
                         <div class="battery-bar" id="timer-battery3-bar4"></div>
+                        <div class="battery-bar" id="timer-battery3-bar5"></div>
                     </div>
                     <div class="battery-label">Battery 3</div>
                 </div>
@@ -322,6 +329,7 @@
                         <div class="battery-bar" id="timer-battery4-bar2"></div>
                         <div class="battery-bar" id="timer-battery4-bar3"></div>
                         <div class="battery-bar" id="timer-battery4-bar4"></div>
+                        <div class="battery-bar" id="timer-battery4-bar5"></div>
                     </div>
                     <div class="battery-label">Battery 4</div>
                 </div>
@@ -341,7 +349,7 @@
     </div>
     
     <div class="instructions">
-        Swipe left/right to switch between Counter and Timer
+        Swipe in any direction to switch between Counter and Timer
     </div>
 
     <script>
@@ -352,15 +360,15 @@
         const resetButton = document.getElementById('resetButton');
         const decreaseButton = document.getElementById('decreaseButton');
         
-        // Create array of all counter battery bars
+        // Create array of all counter battery bars (4 batteries with 5 bars each)
         const counterBatteryBars = [];
         for (let i = 1; i <= 4; i++) {
-            for (let j = 1; j <= 4; j++) {
+            for (let j = 1; j <= 5; j++) {
                 counterBatteryBars.push(document.getElementById(`counter-battery${i}-bar${j}`));
             }
         }
 
-        // Update counter battery bars based on count
+        // Update counter battery bars based on count (each bar = 5 taps)
         function updateCounterBatteries() {
             const activeBars = Math.floor(count / 5);
             
@@ -405,10 +413,10 @@
         const timerResetButton = document.getElementById('timerResetButton');
         const stopButton = document.getElementById('stopButton');
         
-        // Create array of all timer battery bars
+        // Create array of all timer battery bars (4 batteries with 5 bars each)
         const timerBatteryBars = [];
         for (let i = 1; i <= 4; i++) {
-            for (let j = 1; j <= 4; j++) {
+            for (let j = 1; j <= 5; j++) {
                 timerBatteryBars.push(document.getElementById(`timer-battery${i}-bar${j}`));
             }
         }
@@ -466,7 +474,7 @@
             updateTimerBatteries();
         });
 
-        // Swipe navigation
+        // Swipe navigation - improved for both directions
         const appContainer = document.getElementById('appContainer');
         const page1 = document.getElementById('page1');
         const page2 = document.getElementById('page2');
@@ -486,12 +494,11 @@
             
             // Minimum swipe distance
             if (Math.abs(diffX) > 50) {
-                if (diffX > 0 && currentPage === 2) {
-                    // Swipe left on page 2, go to page 1
-                    switchPage(1);
-                } else if (diffX < 0 && currentPage === 1) {
-                    // Swipe right on page 1, go to page 2
+                // Always switch to the other page regardless of swipe direction
+                if (currentPage === 1) {
                     switchPage(2);
+                } else {
+                    switchPage(1);
                 }
             }
         });
