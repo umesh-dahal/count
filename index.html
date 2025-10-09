@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tap Counter</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            color: white;
+        }
+        
+        .container {
+            width: 100%;
+            max-width: 400px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 30px;
+        }
+        
+        .battery-container {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            margin-top: 20px;
+        }
+        
+        .battery {
+            width: 50px;
+            height: 100px;
+            background-color: rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 5px;
+        }
+        
+        .battery-bar {
+            height: 20px;
+            background-color: rgba(255, 255, 255, 0.3);
+            border-radius: 4px;
+            transition: background-color 0.3s ease;
+        }
+        
+        .battery-bar.active {
+            background-color: #4cd964;
+        }
+        
+        .counter-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            flex-grow: 1;
+        }
+        
+        .counter-display {
+            font-size: 120px;
+            font-weight: 700;
+            color: white;
+            text-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+            margin: 20px 0;
+        }
+        
+        .tap-button {
+            width: 200px;
+            height: 200px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        }
+        
+        .tap-button:active {
+            transform: scale(0.95);
+            background: rgba(255, 255, 255, 0.3);
+        }
+        
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            margin-bottom: 30px;
+        }
+        
+        .control-button {
+            padding: 15px 30px;
+            border-radius: 50px;
+            border: none;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .reset-button {
+            background-color: #ff3b30;
+            color: white;
+        }
+        
+        .decrease-button {
+            background-color: #007aff;
+            color: white;
+        }
+        
+        .control-button:active {
+            transform: scale(0.95);
+        }
+        
+        .instructions {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 16px;
+            opacity: 0.8;
+            max-width: 300px;
+        }
+        
+        .battery-label {
+            text-align: center;
+            margin-top: 10px;
+            font-size: 14px;
+            opacity: 0.8;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="battery-container">
+            <div class="battery-wrapper">
+                <div class="battery">
+                    <div class="battery-bar" id="battery1-bar1"></div>
+                    <div class="battery-bar" id="battery1-bar2"></div>
+                    <div class="battery-bar" id="battery1-bar3"></div>
+                    <div class="battery-bar" id="battery1-bar4"></div>
+                </div>
+                <div class="battery-label">Battery 1</div>
+            </div>
+            <div class="battery-wrapper">
+                <div class="battery">
+                    <div class="battery-bar" id="battery2-bar1"></div>
+                    <div class="battery-bar" id="battery2-bar2"></div>
+                    <div class="battery-bar" id="battery2-bar3"></div>
+                    <div class="battery-bar" id="battery2-bar4"></div>
+                </div>
+                <div class="battery-label">Battery 2</div>
+            </div>
+            <div class="battery-wrapper">
+                <div class="battery">
+                    <div class="battery-bar" id="battery3-bar1"></div>
+                    <div class="battery-bar" id="battery3-bar2"></div>
+                    <div class="battery-bar" id="battery3-bar3"></div>
+                    <div class="battery-bar" id="battery3-bar4"></div>
+                </div>
+                <div class="battery-label">Battery 3</div>
+            </div>
+            <div class="battery-wrapper">
+                <div class="battery">
+                    <div class="battery-bar" id="battery4-bar1"></div>
+                    <div class="battery-bar" id="battery4-bar2"></div>
+                    <div class="battery-bar" id="battery4-bar3"></div>
+                    <div class="battery-bar" id="battery4-bar4"></div>
+                </div>
+                <div class="battery-label">Battery 4</div>
+            </div>
+            <div class="battery-wrapper">
+                <div class="battery">
+                    <div class="battery-bar" id="battery5-bar1"></div>
+                    <div class="battery-bar" id="battery5-bar2"></div>
+                    <div class="battery-bar" id="battery5-bar3"></div>
+                    <div class="battery-bar" id="battery5-bar4"></div>
+                </div>
+                <div class="battery-label">Battery 5</div>
+            </div>
+        </div>
+        
+        <div class="counter-container">
+            <div class="counter-display" id="counter">0</div>
+            <div class="tap-button" id="tapButton">
+                <span style="font-size: 24px; font-weight: 600;">TAP</span>
+            </div>
+        </div>
+        
+        <div class="controls">
+            <button class="control-button reset-button" id="resetButton">Reset</button>
+            <button class="control-button decrease-button" id="decreaseButton">-1</button>
+        </div>
+    </div>
+    
+    <div class="instructions">
+        Tap the circle to increase the count. Each bar represents 5 taps.
+    </div>
+
+    <script>
+        let count = 0;
+        const counterDisplay = document.getElementById('counter');
+        const tapButton = document.getElementById('tapButton');
+        const resetButton = document.getElementById('resetButton');
+        const decreaseButton = document.getElementById('decreaseButton');
+        
+        // Create array of all battery bars
+        const batteryBars = [];
+        for (let i = 1; i <= 5; i++) {
+            for (let j = 1; j <= 4; j++) {
+                batteryBars.push(document.getElementById(`battery${i}-bar${j}`));
+            }
+        }
+
+        // Update battery bars based on count
+        function updateBatteries() {
+            // Calculate how many bars should be active
+            const activeBars = Math.floor(count / 5);
+            
+            // Update all bars
+            batteryBars.forEach((bar, index) => {
+                if (index < activeBars) {
+                    bar.classList.add('active');
+                } else {
+                    bar.classList.remove('active');
+                }
+            });
+        }
+
+        // Increase count when tap button is clicked
+        tapButton.addEventListener('click', () => {
+            count++;
+            counterDisplay.textContent = count;
+            updateBatteries();
+        });
+
+        // Reset count when reset button is clicked
+        resetButton.addEventListener('click', () => {
+            count = 0;
+            counterDisplay.textContent = count;
+            updateBatteries();
+        });
+
+        // Decrease count when decrease button is clicked
+        decreaseButton.addEventListener('click', () => {
+            if (count > 0) {
+                count--;
+                counterDisplay.textContent = count;
+                updateBatteries();
+            }
+        });
+
+        // Initialize batteries
+        updateBatteries();
+    </script>
+</body>
+</html>
