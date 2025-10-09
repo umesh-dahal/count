@@ -207,12 +207,6 @@
             color: white;
         }
         
-        .audio-button {
-            background-color: #5856d6;
-            color: white;
-            margin-top: 10px;
-        }
-        
         .control-button:active {
             transform: scale(0.95);
         }
@@ -245,13 +239,6 @@
             min-height: 25px;
             font-weight: 600;
             text-align: center;
-        }
-        
-        .audio-status {
-            font-size: 14px;
-            margin-top: 5px;
-            text-align: center;
-            opacity: 0.8;
         }
     </style>
 </head>
@@ -373,8 +360,6 @@
                     <span id="timerDisplay">30</span>
                 </div>
                 <div class="countdown-display" id="countdownDisplay"></div>
-                <button class="control-button audio-button" id="enableAudio">Enable Sound</button>
-                <div class="audio-status" id="audioStatus">Sound: Disabled</div>
             </div>
             
             <div class="timer-controls">
@@ -445,14 +430,11 @@
         let timerInterval = null;
         let isTimerRunning = false;
         let currentCycle = 0;
-        let audioEnabled = false;
         const timerDisplay = document.getElementById('timerDisplay');
         const countdownDisplay = document.getElementById('countdownDisplay');
         const timerButton = document.getElementById('timerButton');
         const timerResetButton = document.getElementById('timerResetButton');
         const stopButton = document.getElementById('stopButton');
-        const enableAudioButton = document.getElementById('enableAudio');
-        const audioStatus = document.getElementById('audioStatus');
         
         // Create array of all timer battery bars (4 batteries with 5 bars each)
         const timerBatteryBars = [];
@@ -462,51 +444,17 @@
             }
         }
 
-        // Enable audio function
-        function enableAudio() {
-            if (!audioEnabled) {
-                // Create and start audio context on user gesture
-                const AudioContext = window.AudioContext || window.webkitAudioContext;
-                const audioContext = new AudioContext();
-                
-                // Resume audio context (required for iOS)
-                if (audioContext.state === 'suspended') {
-                    audioContext.resume();
-                }
-                
-                // Test sound
-                playTestSound(audioContext);
-                audioEnabled = true;
-                audioStatus.textContent = "Sound: Enabled ✓";
-                enableAudioButton.textContent = "Sound Enabled";
-                enableAudioButton.style.backgroundColor = '#4cd964';
-            }
-        }
-
-        // Play test sound to verify audio works
-        function playTestSound(audioContext) {
-            const oscillator = audioContext.createOscillator();
-            const gainNode = audioContext.createGain();
-            
-            oscillator.connect(gainNode);
-            gainNode.connect(audioContext.destination);
-            
-            oscillator.frequency.setValueAtTime(600, audioContext.currentTime);
-            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
-            
-            oscillator.start();
-            oscillator.stop(audioContext.currentTime + 0.5);
-        }
-
-        // Play countdown sound
+        // Audio context for countdown sounds
+        let audioContext;
+        let oscillator;
+        
         function playCountdownSound(number) {
-            if (!audioEnabled) return;
+            if (!audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            }
             
-            const AudioContext = window.AudioContext || window.webkitAudioContext;
-            const audioContext = new AudioContext();
-            
-            const oscillator = audioContext.createOscillator();
+            // Create oscillator
+            oscillator = audioContext.createOscillator();
             const gainNode = audioContext.createGain();
             
             // Different frequencies for different numbers
@@ -536,10 +484,7 @@
 
         // Speak the countdown number
         function speakCountdown(number) {
-            if (audioEnabled && 'speechSynthesis' in window) {
-                // Cancel any previous speech
-                window.speechSynthesis.cancel();
-                
+            if ('speechSynthesis' in window) {
                 const utterance = new SpeechSynthesisUtterance(number.toString());
                 utterance.rate = 1.2;
                 utterance.pitch = 1;
@@ -555,11 +500,8 @@
             // Show countdown text for last 10 seconds
             if (timerSeconds <= 10) {
                 countdownDisplay.textContent = `${timerSeconds}...`;
-                
-                if (audioEnabled) {
-                    playCountdownSound(timerSeconds);
-                    speakCountdown(timerSeconds);
-                }
+                playCountdownSound(timerSeconds);
+                speakCountdown(timerSeconds);
                 
                 // Add visual effect for countdown
                 if (timerSeconds <= 5) {
@@ -584,9 +526,6 @@
             });
         }
 
-        // Enable audio button
-        enableAudioButton.addEventListener('click', enableAudio);
-
         // Start/Stop timer when timer button is clicked
         timerButton.addEventListener('click', () => {
             if (!isTimerRunning) {
@@ -604,12 +543,10 @@
                         updateTimerBatteries();
                         
                         // Play completion sound
-                        if (audioEnabled) {
-                            playCountdownSound(0);
-                            if ('speechSynthesis' in window) {
-                                const utterance = new SpeechSynthesisUtterance("Time's up!");
-                                window.speechSynthesis.speak(utterance);
-                            }
+                        playCountdownSound(0);
+                        if ('speechSynthesis' in window) {
+                            const utterance = new SpeechSynthesisUtterance("Time's up!");
+                            window.speechSynthesis.speak(utterance);
                         }
                     }
                 }, 1000);
