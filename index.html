@@ -462,9 +462,9 @@
             if (number <= 5) {
                 frequency = 800; // High pitch for last 5 seconds
             } else if (number <= 10) {
-                frequency = 600; // Medium-high pitch
+                frequency = 800; // Medium-high pitch
             } else {
-                frequency = 400; // Lower pitch for higher numbers
+                frequency = 800; // Lower pitch for higher numbers
             }
             
             oscillator.type = 'sine';
@@ -498,7 +498,7 @@
             timerDisplay.textContent = timerSeconds;
             
             // Show countdown text for last 10 seconds
-            if (timerSeconds <= 10) {
+            if (timerSeconds <= 15) {
                 countdownDisplay.textContent = `${timerSeconds}...`;
                 playCountdownSound(timerSeconds);
                 speakCountdown(timerSeconds);
