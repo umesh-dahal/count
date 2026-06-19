@@ -381,7 +381,7 @@
                     <span id="timerDisplay">30</span>
                 </div>
                 <div class="countdown-display" id="countdownDisplay"></div>
-                <div class="sound-note" id="soundNote">Tap timer once to enable sound</div>
+                <div class="sound-note" id="soundNote">Tap timer once. Voice will say Ready, then 15, 14, 13...</div>
             </div>
 
             <div class="timer-controls">
@@ -396,9 +396,12 @@
     </div>
 
     <script>
-        // Set this to true only if you also want spoken numbers.
-        // For iPhone Chrome, beeps are more reliable than speechSynthesis.
-        const USE_SPOKEN_COUNTDOWN = false;
+        // Voice countdown settings
+        // This version speaks "15, 14, 13..." instead of only making beep sounds.
+        const USE_SPOKEN_COUNTDOWN = true;
+        const USE_COUNTDOWN_BEEPS = false;
+        const USE_TIME_UP_BEEP = false;
+        const SPEAK_READY_ON_FIRST_START = true;
 
         // Counter functionality
         let count = 0;
@@ -451,6 +454,7 @@
         let timerInterval = null;
         let isTimerRunning = false;
         let currentCycle = 0;
+        let hasSpokenReady = false;
 
         const timerDisplay = document.getElementById('timerDisplay');
         const countdownDisplay = document.getElementById('countdownDisplay');
@@ -466,22 +470,14 @@
             }
         }
 
-        // iPhone / iOS Chrome audio fix
+        // Optional Web Audio beep support. Beeps are OFF by default in this version.
         let audioContext = null;
         let audioUnlocked = false;
 
         function getAudioContext() {
             const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-
-            if (!AudioContextClass) {
-                soundNote.textContent = 'Audio is not supported in this browser';
-                return null;
-            }
-
-            if (!audioContext) {
-                audioContext = new AudioContextClass();
-            }
-
+            if (!AudioContextClass) return null;
+            if (!audioContext) audioContext = new AudioContextClass();
             return audioContext;
         }
 
@@ -494,8 +490,6 @@
                     await context.resume();
                 }
 
-                // Play one almost-silent tone during a user tap.
-                // This unlocks sound on iPhone Chrome/Safari.
                 if (!audioUnlocked && context.state === 'running') {
                     const oscillator = context.createOscillator();
                     const gainNode = context.createGain();
@@ -510,35 +504,20 @@
                     audioUnlocked = true;
                 }
 
-                if (context.state === 'running') {
-                    soundNote.textContent = 'Sound enabled';
-                    setTimeout(() => {
-                        if (soundNote.textContent === 'Sound enabled') {
-                            soundNote.textContent = '';
-                        }
-                    }, 1200);
-                    return true;
-                }
+                return context.state === 'running';
             } catch (error) {
                 console.log('Audio unlock failed:', error);
+                return false;
             }
-
-            soundNote.textContent = 'Tap again to enable sound';
-            return false;
         }
 
-        async function playTone(frequency, duration = 0.3, volume = 0.35) {
+        async function playTone(frequency, duration = 0.25, volume = 0.35) {
             const context = getAudioContext();
             if (!context) return;
 
             try {
-                if (context.state !== 'running') {
-                    await context.resume();
-                }
-
-                if (context.state !== 'running') {
-                    return;
-                }
+                if (context.state !== 'running') await context.resume();
+                if (context.state !== 'running') return;
 
                 const oscillator = context.createOscillator();
                 const gainNode = context.createGain();
@@ -547,13 +526,11 @@
 
                 oscillator.type = 'sine';
                 oscillator.frequency.setValueAtTime(frequency, startTime);
-
                 gainNode.gain.setValueAtTime(volume, startTime);
                 gainNode.gain.exponentialRampToValueAtTime(0.01, stopTime);
 
                 oscillator.connect(gainNode);
                 gainNode.connect(context.destination);
-
                 oscillator.start(startTime);
                 oscillator.stop(stopTime);
             } catch (error) {
@@ -561,51 +538,110 @@
             }
         }
 
-        function playCountdownSound(number) {
+        function playCountdownBeep(number) {
+            if (!USE_COUNTDOWN_BEEPS) return;
             if (number > 15 || number < 1) return;
 
             let frequency;
-            if (number <= 5) {
-                frequency = 850;
-            } else if (number <= 10) {
-                frequency = 650;
-            } else {
-                frequency = 450;
-            }
+            if (number <= 5) frequency = 850;
+            else if (number <= 10) frequency = 650;
+            else frequency = 450;
 
-            playTone(frequency, 0.25, 0.4);
+            playTone(frequency, 0.22, 0.35);
         }
 
-        function playTimeUpSound() {
-            playTone(1000, 0.16, 0.45);
-            setTimeout(() => playTone(1200, 0.16, 0.45), 180);
-            setTimeout(() => playTone(900, 0.28, 0.45), 360);
+        function playTimeUpBeep() {
+            if (!USE_TIME_UP_BEEP) return;
+            playTone(1000, 0.16, 0.4);
+            setTimeout(() => playTone(1200, 0.16, 0.4), 180);
+            setTimeout(() => playTone(900, 0.25, 0.4), 360);
+        }
+
+        // Speech synthesis support for iPhone Chrome/Safari.
+        let selectedVoice = null;
+
+        function loadVoices() {
+            if (!('speechSynthesis' in window)) return [];
+
+            const voices = window.speechSynthesis.getVoices() || [];
+            if (!voices.length) return voices;
+
+            selectedVoice =
+                voices.find(voice => voice.lang === 'en-US' && /Samantha|Karen|Daniel|Google|English/i.test(voice.name)) ||
+                voices.find(voice => voice.lang === 'en-US') ||
+                voices.find(voice => voice.lang && voice.lang.toLowerCase().startsWith('en')) ||
+                voices[0];
+
+            return voices;
+        }
+
+        function prepareSpeech() {
+            if (!USE_SPOKEN_COUNTDOWN) return false;
+
+            if (!('speechSynthesis' in window) || typeof SpeechSynthesisUtterance === 'undefined') {
+                soundNote.textContent = 'Voice is not supported in this browser';
+                return false;
+            }
+
+            try {
+                loadVoices();
+                window.speechSynthesis.cancel();
+                if (typeof window.speechSynthesis.resume === 'function') {
+                    window.speechSynthesis.resume();
+                }
+                return true;
+            } catch (error) {
+                console.log('Speech prepare failed:', error);
+                return false;
+            }
         }
 
         function speakText(text) {
             if (!USE_SPOKEN_COUNTDOWN) return;
-            if (!('speechSynthesis' in window)) return;
+            if (!prepareSpeech()) return;
 
-            window.speechSynthesis.cancel();
+            try {
+                const utterance = new SpeechSynthesisUtterance(String(text));
+                utterance.lang = 'en-US';
+                utterance.rate = 1.05;
+                utterance.pitch = 1;
+                utterance.volume = 1;
 
-            const utterance = new SpeechSynthesisUtterance(text);
-            utterance.rate = 1.15;
-            utterance.pitch = 1;
-            utterance.volume = 1;
-            utterance.lang = 'en-US';
+                loadVoices();
+                if (selectedVoice) {
+                    utterance.voice = selectedVoice;
+                }
 
-            const voices = window.speechSynthesis.getVoices();
-            const englishVoice = voices.find(voice => voice.lang && voice.lang.toLowerCase().startsWith('en'));
-            if (englishVoice) {
-                utterance.voice = englishVoice;
+                utterance.onerror = event => {
+                    console.log('Speech error:', event.error);
+                    soundNote.textContent = 'Voice blocked. Tap timer again and check iPhone Silent Mode.';
+                };
+
+                window.speechSynthesis.speak(utterance);
+            } catch (error) {
+                console.log('Speech error:', error);
             }
-
-            window.speechSynthesis.speak(utterance);
         }
 
         function speakCountdown(number) {
             if (number > 15 || number < 1) return;
             speakText(number.toString());
+        }
+
+        async function prepareSoundAndVoice() {
+            // iPhone needs audio/speech setup during a real tap.
+            if (USE_COUNTDOWN_BEEPS || USE_TIME_UP_BEEP) {
+                await unlockAudio();
+            }
+
+            prepareSpeech();
+            soundNote.textContent = 'Voice enabled';
+
+            setTimeout(() => {
+                if (soundNote.textContent === 'Voice enabled') {
+                    soundNote.textContent = '';
+                }
+            }, 1200);
         }
 
         function updateTimerDisplay() {
@@ -615,8 +651,8 @@
                 countdownDisplay.textContent = `${timerSeconds}...`;
 
                 if (isTimerRunning) {
-                    playCountdownSound(timerSeconds);
                     speakCountdown(timerSeconds);
+                    playCountdownBeep(timerSeconds);
                 }
 
                 if (timerSeconds <= 5) {
@@ -631,8 +667,6 @@
         }
 
         function updateTimerBatteries() {
-            // 4 batteries x 5 bars = 20 bars.
-            // This shows all 20 bars on cycle 20, then restarts from empty on cycle 21.
             const activeBars = currentCycle % (timerBatteryBars.length + 1);
 
             timerBatteryBars.forEach((bar, index) => {
@@ -652,6 +686,7 @@
 
             isTimerRunning = true;
             timerButton.classList.add('running');
+            timerButton.classList.remove('countdown');
             countdownDisplay.textContent = '';
 
             timerInterval = setInterval(() => {
@@ -664,8 +699,8 @@
                     countdownDisplay.textContent = "Time's up!";
                     timerButton.classList.remove('countdown');
 
-                    playTimeUpSound();
-                    speakText("Time's up!");
+                    speakText("Time's up");
+                    playTimeUpBeep();
 
                     currentCycle++;
                     updateTimerBatteries();
@@ -673,9 +708,7 @@
                     timerSeconds = 30;
 
                     setTimeout(() => {
-                        if (isTimerRunning) {
-                            updateTimerDisplay();
-                        }
+                        if (isTimerRunning) updateTimerDisplay();
                     }, 300);
 
                     return;
@@ -686,9 +719,14 @@
         }
 
         async function handleTimerButtonClick() {
-            await unlockAudio();
+            await prepareSoundAndVoice();
 
             if (!isTimerRunning) {
+                if (SPEAK_READY_ON_FIRST_START && !hasSpokenReady) {
+                    speakText('Ready');
+                    hasSpokenReady = true;
+                }
+
                 startTimer();
             }
         }
@@ -725,31 +763,31 @@
 
             timerSeconds = 30;
             currentCycle = 0;
+            hasSpokenReady = false;
             updateTimerDisplay();
             updateTimerBatteries();
             countdownDisplay.textContent = '';
+            soundNote.textContent = 'Tap timer once. Voice will say Ready, then 15, 14, 13...';
 
             if ('speechSynthesis' in window) {
                 window.speechSynthesis.cancel();
             }
         });
 
-        // Load voices early. Spoken countdown is off by default for iPhone reliability.
         if ('speechSynthesis' in window) {
-            window.speechSynthesis.getVoices();
+            loadVoices();
             window.speechSynthesis.onvoiceschanged = () => {
-                window.speechSynthesis.getVoices();
+                loadVoices();
             };
         }
 
-        // Extra iPhone support: unlock from the first real user interaction.
-        // Timer button still calls unlockAudio() again, so this is safe.
+        // Extra iPhone support: prepare speech on first real tap anywhere.
         document.addEventListener('touchend', () => {
-            unlockAudio();
+            prepareSpeech();
         }, { once: true, passive: true });
 
         document.addEventListener('click', () => {
-            unlockAudio();
+            prepareSpeech();
         }, { once: true });
 
         // Swipe navigation
@@ -771,11 +809,8 @@
             const diffX = startX - endX;
 
             if (Math.abs(diffX) > 50) {
-                if (currentPage === 1) {
-                    switchPage(2);
-                } else {
-                    switchPage(1);
-                }
+                if (currentPage === 1) switchPage(2);
+                else switchPage(1);
             }
         }, { passive: true });
 
