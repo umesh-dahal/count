@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Tap Counter & Timer</title>
     <style>
         * {
@@ -11,7 +11,13 @@
             box-sizing: border-box;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
         }
-        
+
+        html,
+        body {
+            width: 100%;
+            min-height: 100%;
+        }
+
         body {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
@@ -21,19 +27,17 @@
             padding: 20px;
             color: white;
             overflow: hidden;
-            -webkit-user-select: none;
-            user-select: none;
         }
-        
+
         .app-container {
             width: 100%;
             max-width: 400px;
             height: 80vh;
             position: relative;
             overflow: hidden;
-            touch-action: pan-y;
+            touch-action: pan-y pinch-zoom;
         }
-        
+
         .page {
             position: absolute;
             top: 0;
@@ -46,90 +50,95 @@
             gap: 30px;
             transition: transform 0.3s ease;
         }
-        
+
         .page-1 {
             transform: translateX(0);
         }
-        
+
         .page-2 {
             transform: translateX(100%);
         }
-        
+
         .page.active {
             transform: translateX(0);
         }
-        
+
         .page.inactive {
             transform: translateX(-100%);
         }
-        
+
         .page-indicator {
             display: flex;
             justify-content: center;
             gap: 10px;
             margin-bottom: 20px;
         }
-        
+
         .indicator-dot {
-            width: 10px;
-            height: 10px;
+            width: 8px;
+            height: 8px;
             border-radius: 50%;
             background-color: rgba(255, 255, 255, 0.3);
             transition: background-color 0.3s ease;
         }
-        
+
         .indicator-dot.active {
             background-color: white;
         }
-        
+
         .battery-container {
             display: flex;
             justify-content: space-between;
             width: 100%;
-            margin-top: 10px;
+            margin-top: 20px;
         }
-        
-        .battery-wrapper {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-        
+
         .battery {
-            width: 40px;
-            height: 100px;
+            width: 50px;
+            height: 120px;
             background-color: rgba(255, 255, 255, 0.2);
-            border-radius: 8px;
+            border-radius: 10px;
             position: relative;
             overflow: hidden;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
-            padding: 4px;
+            padding: 5px;
         }
-        
+
         .battery-bar {
-            height: 16px;
-            background-color: rgba(255, 255, 255, 0.2);
-            border-radius: 3px;
+            height: 18px;
+            background-color: rgba(255, 255, 255, 0.3);
+            border-radius: 4px;
             transition: background-color 0.3s ease;
         }
-        
+
         .battery-bar.active {
             background-color: #4cd964;
         }
-        
-        .counter-container, .timer-container {
+
+        .counter-container,
+        .timer-container {
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             flex-grow: 1;
         }
-        
-        .tap-button, .timer-button {
-            width: 180px;
-            height: 180px;
+
+        .counter-display {
+            font-size: 40px;
+            font-weight: 600;
+            color: white;
+            text-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+            margin-bottom: 10px;
+            opacity: 0.8;
+        }
+
+        .tap-button,
+        .timer-button {
+            width: 200px;
+            height: 200px;
             border-radius: 50%;
             background: rgba(255, 255, 255, 0.2);
             backdrop-filter: blur(10px);
@@ -146,108 +155,111 @@
             color: white;
             -webkit-tap-highlight-color: transparent;
             touch-action: manipulation;
+            user-select: none;
+            -webkit-user-select: none;
         }
-        
+
         .timer-button.running {
             background: rgba(76, 217, 100, 0.3);
             border-color: #4cd964;
         }
-        
+
         .timer-button.countdown {
             background: rgba(255, 59, 48, 0.3);
             border-color: #ff3b30;
             animation: pulse 1s infinite;
         }
-        
+
         @keyframes pulse {
             0% { transform: scale(1); }
             50% { transform: scale(1.05); }
             100% { transform: scale(1); }
         }
-        
-        .tap-button:active, .timer-button:active {
+
+        .tap-button:active,
+        .timer-button:active {
             transform: scale(0.95);
             background: rgba(255, 255, 255, 0.3);
         }
-        
-        .controls {
-            display: flex;
-            justify-content: space-between;
-            width: 100%;
-            margin-bottom: 20px;
-            gap: 10px;
-        }
-        
+
+        .controls,
         .timer-controls {
             display: flex;
             justify-content: space-between;
             width: 100%;
-            margin-bottom: 20px;
-            gap: 10px;
+            margin-bottom: 30px;
         }
-        
+
         .control-button {
-            padding: 12px 25px;
+            padding: 15px 30px;
             border-radius: 50px;
             border: none;
-            font-size: 16px;
+            font-size: 18px;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.2s ease;
             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
             -webkit-tap-highlight-color: transparent;
             touch-action: manipulation;
-            flex: 1;
+            user-select: none;
+            -webkit-user-select: none;
         }
-        
+
         .reset-button {
             background-color: #ff3b30;
             color: white;
         }
-        
+
         .decrease-button {
             background-color: #007aff;
             color: white;
         }
-        
+
         .stop-button {
             background-color: #ff9500;
             color: white;
         }
-        
+
         .control-button:active {
             transform: scale(0.95);
         }
-        
+
         .instructions {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 16px;
+            opacity: 0.8;
+            max-width: 300px;
+        }
+
+        .battery-label {
             text-align: center;
             margin-top: 10px;
             font-size: 14px;
             opacity: 0.8;
-            max-width: 300px;
         }
-        
-        .battery-label {
-            text-align: center;
-            margin-top: 5px;
-            font-size: 11px;
-            opacity: 0.8;
-        }
-        
+
         .page-title {
-            font-size: 22px;
+            font-size: 24px;
             font-weight: 600;
-            margin-bottom: 5px;
+            margin-bottom: 10px;
             text-align: center;
         }
-        
+
         .countdown-display {
-            font-size: 20px;
+            font-size: 18px;
             margin-top: 10px;
-            min-height: 30px;
-            font-weight: 700;
+            min-height: 25px;
+            font-weight: 600;
             text-align: center;
-            color: #ff6b6b;
+        }
+
+        .sound-note {
+            font-size: 13px;
+            margin-top: 6px;
+            min-height: 18px;
+            opacity: 0.75;
+            text-align: center;
         }
     </style>
 </head>
@@ -256,12 +268,12 @@
         <div class="indicator-dot active" id="indicator1"></div>
         <div class="indicator-dot" id="indicator2"></div>
     </div>
-    
+
     <div class="app-container" id="appContainer">
         <!-- Page 1: Counter -->
         <div class="page page-1 active" id="page1">
             <div class="page-title">Tap Counter</div>
-            
+
             <div class="battery-container">
                 <div class="battery-wrapper">
                     <div class="battery">
@@ -304,23 +316,23 @@
                     <div class="battery-label">Battery 4</div>
                 </div>
             </div>
-            
+
             <div class="counter-container">
                 <div class="tap-button" id="tapButton">
                     <span id="circleCounter">0</span>
                 </div>
             </div>
-            
+
             <div class="controls">
-                <button class="control-button reset-button" id="resetButton">Reset</button>
-                <button class="control-button decrease-button" id="decreaseButton">-1</button>
+                <button class="control-button reset-button" id="resetButton" type="button">Reset</button>
+                <button class="control-button decrease-button" id="decreaseButton" type="button">-1</button>
             </div>
         </div>
-        
+
         <!-- Page 2: Timer -->
         <div class="page page-2" id="page2">
             <div class="page-title">30-Second Timer</div>
-            
+
             <div class="battery-container">
                 <div class="battery-wrapper">
                     <div class="battery">
@@ -363,33 +375,38 @@
                     <div class="battery-label">Battery 4</div>
                 </div>
             </div>
-            
+
             <div class="timer-container">
                 <div class="timer-button" id="timerButton">
                     <span id="timerDisplay">30</span>
                 </div>
                 <div class="countdown-display" id="countdownDisplay"></div>
+                <div class="sound-note" id="soundNote">Tap timer once to enable sound</div>
             </div>
-            
+
             <div class="timer-controls">
-                <button class="control-button reset-button" id="timerResetButton">Reset</button>
-                <button class="control-button stop-button" id="stopButton">Stop</button>
+                <button class="control-button reset-button" id="timerResetButton" type="button">Reset</button>
+                <button class="control-button stop-button" id="stopButton" type="button">Stop</button>
             </div>
         </div>
     </div>
-    
+
     <div class="instructions">
-        Swipe to switch between Counter and Timer
+        Swipe in any direction to switch between Counter and Timer
     </div>
 
     <script>
-        // ===== COUNTER FUNCTIONALITY =====
+        // Set this to true only if you also want spoken numbers.
+        // For iPhone Chrome, beeps are more reliable than speechSynthesis.
+        const USE_SPOKEN_COUNTDOWN = false;
+
+        // Counter functionality
         let count = 0;
         const circleCounter = document.getElementById('circleCounter');
         const tapButton = document.getElementById('tapButton');
         const resetButton = document.getElementById('resetButton');
         const decreaseButton = document.getElementById('decreaseButton');
-        
+
         const counterBatteryBars = [];
         for (let i = 1; i <= 4; i++) {
             for (let j = 1; j <= 5; j++) {
@@ -398,7 +415,8 @@
         }
 
         function updateCounterBatteries() {
-            const activeBars = Math.floor(count / 5);
+            const activeBars = Math.min(Math.floor(count / 5), counterBatteryBars.length);
+
             counterBatteryBars.forEach((bar, index) => {
                 if (index < activeBars) {
                     bar.classList.add('active');
@@ -408,8 +426,7 @@
             });
         }
 
-        tapButton.addEventListener('click', (e) => {
-            e.preventDefault();
+        tapButton.addEventListener('click', () => {
             count++;
             circleCounter.textContent = count;
             updateCounterBatteries();
@@ -429,17 +446,19 @@
             }
         });
 
-        // ===== TIMER FUNCTIONALITY =====
+        // Timer functionality
         let timerSeconds = 30;
         let timerInterval = null;
         let isTimerRunning = false;
         let currentCycle = 0;
+
         const timerDisplay = document.getElementById('timerDisplay');
         const countdownDisplay = document.getElementById('countdownDisplay');
+        const soundNote = document.getElementById('soundNote');
         const timerButton = document.getElementById('timerButton');
         const timerResetButton = document.getElementById('timerResetButton');
         const stopButton = document.getElementById('stopButton');
-        
+
         const timerBatteryBars = [];
         for (let i = 1; i <= 4; i++) {
             for (let j = 1; j <= 5; j++) {
@@ -447,24 +466,159 @@
             }
         }
 
-        function updateTimerBatteries() {
-            const activeBars = currentCycle % 20;
-            timerBatteryBars.forEach((bar, index) => {
-                if (index < activeBars) {
-                    bar.classList.add('active');
-                } else {
-                    bar.classList.remove('active');
+        // iPhone / iOS Chrome audio fix
+        let audioContext = null;
+        let audioUnlocked = false;
+
+        function getAudioContext() {
+            const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+
+            if (!AudioContextClass) {
+                soundNote.textContent = 'Audio is not supported in this browser';
+                return null;
+            }
+
+            if (!audioContext) {
+                audioContext = new AudioContextClass();
+            }
+
+            return audioContext;
+        }
+
+        async function unlockAudio() {
+            const context = getAudioContext();
+            if (!context) return false;
+
+            try {
+                if (context.state !== 'running') {
+                    await context.resume();
                 }
-            });
+
+                // Play one almost-silent tone during a user tap.
+                // This unlocks sound on iPhone Chrome/Safari.
+                if (!audioUnlocked && context.state === 'running') {
+                    const oscillator = context.createOscillator();
+                    const gainNode = context.createGain();
+
+                    gainNode.gain.setValueAtTime(0.0001, context.currentTime);
+                    oscillator.connect(gainNode);
+                    gainNode.connect(context.destination);
+
+                    oscillator.start(context.currentTime);
+                    oscillator.stop(context.currentTime + 0.05);
+
+                    audioUnlocked = true;
+                }
+
+                if (context.state === 'running') {
+                    soundNote.textContent = 'Sound enabled';
+                    setTimeout(() => {
+                        if (soundNote.textContent === 'Sound enabled') {
+                            soundNote.textContent = '';
+                        }
+                    }, 1200);
+                    return true;
+                }
+            } catch (error) {
+                console.log('Audio unlock failed:', error);
+            }
+
+            soundNote.textContent = 'Tap again to enable sound';
+            return false;
+        }
+
+        async function playTone(frequency, duration = 0.3, volume = 0.35) {
+            const context = getAudioContext();
+            if (!context) return;
+
+            try {
+                if (context.state !== 'running') {
+                    await context.resume();
+                }
+
+                if (context.state !== 'running') {
+                    return;
+                }
+
+                const oscillator = context.createOscillator();
+                const gainNode = context.createGain();
+                const startTime = context.currentTime + 0.01;
+                const stopTime = startTime + duration;
+
+                oscillator.type = 'sine';
+                oscillator.frequency.setValueAtTime(frequency, startTime);
+
+                gainNode.gain.setValueAtTime(volume, startTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, stopTime);
+
+                oscillator.connect(gainNode);
+                gainNode.connect(context.destination);
+
+                oscillator.start(startTime);
+                oscillator.stop(stopTime);
+            } catch (error) {
+                console.log('Audio playback error:', error);
+            }
+        }
+
+        function playCountdownSound(number) {
+            if (number > 15 || number < 1) return;
+
+            let frequency;
+            if (number <= 5) {
+                frequency = 850;
+            } else if (number <= 10) {
+                frequency = 650;
+            } else {
+                frequency = 450;
+            }
+
+            playTone(frequency, 0.25, 0.4);
+        }
+
+        function playTimeUpSound() {
+            playTone(1000, 0.16, 0.45);
+            setTimeout(() => playTone(1200, 0.16, 0.45), 180);
+            setTimeout(() => playTone(900, 0.28, 0.45), 360);
+        }
+
+        function speakText(text) {
+            if (!USE_SPOKEN_COUNTDOWN) return;
+            if (!('speechSynthesis' in window)) return;
+
+            window.speechSynthesis.cancel();
+
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.rate = 1.15;
+            utterance.pitch = 1;
+            utterance.volume = 1;
+            utterance.lang = 'en-US';
+
+            const voices = window.speechSynthesis.getVoices();
+            const englishVoice = voices.find(voice => voice.lang && voice.lang.toLowerCase().startsWith('en'));
+            if (englishVoice) {
+                utterance.voice = englishVoice;
+            }
+
+            window.speechSynthesis.speak(utterance);
+        }
+
+        function speakCountdown(number) {
+            if (number > 15 || number < 1) return;
+            speakText(number.toString());
         }
 
         function updateTimerDisplay() {
             timerDisplay.textContent = timerSeconds;
-            
-            // Countdown starts at 15 seconds
+
             if (timerSeconds <= 15 && timerSeconds > 0) {
-                countdownDisplay.textContent = `⏱️ ${timerSeconds}...`;
-                
+                countdownDisplay.textContent = `${timerSeconds}...`;
+
+                if (isTimerRunning) {
+                    playCountdownSound(timerSeconds);
+                    speakCountdown(timerSeconds);
+                }
+
                 if (timerSeconds <= 5) {
                     timerButton.classList.add('countdown');
                 } else {
@@ -476,93 +630,146 @@
             }
         }
 
-        // Start timer
-        timerButton.addEventListener('click', (e) => {
-            e.preventDefault();
-            
-            if (!isTimerRunning) {
-                // If timer is at 0, reset it first
-                if (timerSeconds === 0) {
-                    timerSeconds = 30;
-                }
-                
-                isTimerRunning = true;
-                timerButton.classList.add('running');
-                
-                if (timerInterval) {
-                    clearInterval(timerInterval);
-                }
-                
-                timerInterval = setInterval(() => {
-                    timerSeconds--;
-                    updateTimerDisplay();
-                    
-                    if (timerSeconds === 0) {
-                        timerSeconds = 30;
-                        currentCycle++;
-                        updateTimerBatteries();
-                        timerButton.classList.remove('countdown');
-                        
-                        // Show "Time's up!" message
-                        countdownDisplay.textContent = '⏰ Time\'s Up!';
-                        
-                        // Vibrate if available
-                        if (navigator.vibrate) {
-                            navigator.vibrate([200, 100, 200]);
-                        }
-                    }
-                }, 1000);
-            }
-        });
+        function updateTimerBatteries() {
+            // 4 batteries x 5 bars = 20 bars.
+            // This shows all 20 bars on cycle 20, then restarts from empty on cycle 21.
+            const activeBars = currentCycle % (timerBatteryBars.length + 1);
 
-        // Stop timer
+            timerBatteryBars.forEach((bar, index) => {
+                if (index < activeBars) {
+                    bar.classList.add('active');
+                } else {
+                    bar.classList.remove('active');
+                }
+            });
+        }
+
+        function startTimer() {
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+
+            isTimerRunning = true;
+            timerButton.classList.add('running');
+            countdownDisplay.textContent = '';
+
+            timerInterval = setInterval(() => {
+                if (!isTimerRunning) return;
+
+                timerSeconds--;
+
+                if (timerSeconds <= 0) {
+                    timerDisplay.textContent = '0';
+                    countdownDisplay.textContent = "Time's up!";
+                    timerButton.classList.remove('countdown');
+
+                    playTimeUpSound();
+                    speakText("Time's up!");
+
+                    currentCycle++;
+                    updateTimerBatteries();
+
+                    timerSeconds = 30;
+
+                    setTimeout(() => {
+                        if (isTimerRunning) {
+                            updateTimerDisplay();
+                        }
+                    }, 300);
+
+                    return;
+                }
+
+                updateTimerDisplay();
+            }, 1000);
+        }
+
+        async function handleTimerButtonClick() {
+            await unlockAudio();
+
+            if (!isTimerRunning) {
+                startTimer();
+            }
+        }
+
+        timerButton.addEventListener('click', handleTimerButtonClick);
+
         stopButton.addEventListener('click', () => {
             if (isTimerRunning) {
                 isTimerRunning = false;
                 timerButton.classList.remove('running');
                 timerButton.classList.remove('countdown');
-                countdownDisplay.textContent = '⏸️ Paused';
+                countdownDisplay.textContent = 'Paused';
+
                 if (timerInterval) {
                     clearInterval(timerInterval);
                     timerInterval = null;
                 }
+
+                if ('speechSynthesis' in window) {
+                    window.speechSynthesis.cancel();
+                }
             }
         });
 
-        // Reset timer
         timerResetButton.addEventListener('click', () => {
             isTimerRunning = false;
             timerButton.classList.remove('running');
             timerButton.classList.remove('countdown');
+
             if (timerInterval) {
                 clearInterval(timerInterval);
                 timerInterval = null;
             }
+
             timerSeconds = 30;
             currentCycle = 0;
             updateTimerDisplay();
             updateTimerBatteries();
             countdownDisplay.textContent = '';
+
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+            }
         });
 
-        // ===== SWIPE NAVIGATION =====
+        // Load voices early. Spoken countdown is off by default for iPhone reliability.
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.getVoices();
+            window.speechSynthesis.onvoiceschanged = () => {
+                window.speechSynthesis.getVoices();
+            };
+        }
+
+        // Extra iPhone support: unlock from the first real user interaction.
+        // Timer button still calls unlockAudio() again, so this is safe.
+        document.addEventListener('touchend', () => {
+            unlockAudio();
+        }, { once: true, passive: true });
+
+        document.addEventListener('click', () => {
+            unlockAudio();
+        }, { once: true });
+
+        // Swipe navigation
         const appContainer = document.getElementById('appContainer');
         const page1 = document.getElementById('page1');
         const page2 = document.getElementById('page2');
         const indicator1 = document.getElementById('indicator1');
         const indicator2 = document.getElementById('indicator2');
-        
+
         let startX = 0;
         let currentPage = 1;
 
-        appContainer.addEventListener('touchstart', (e) => {
-            startX = e.touches[0].clientX;
+        appContainer.addEventListener('touchstart', (event) => {
+            startX = event.touches[0].clientX;
         }, { passive: true });
 
-        appContainer.addEventListener('touchend', (e) => {
-            const endX = e.changedTouches[0].clientX;
+        appContainer.addEventListener('touchend', (event) => {
+            const endX = event.changedTouches[0].clientX;
             const diffX = startX - endX;
-            
+
             if (Math.abs(diffX) > 50) {
                 if (currentPage === 1) {
                     switchPage(2);
@@ -592,13 +799,9 @@
             }
         }
 
-        // ===== INITIALIZE =====
         updateCounterBatteries();
         updateTimerDisplay();
         updateTimerBatteries();
-        
-        console.log('App initialized successfully!');
-        console.log('Countdown will start at 15 seconds');
     </script>
 </body>
 </html>
