@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Tap Counter & Timer</title>
     <style>
         * {
@@ -29,6 +29,7 @@
             height: 80vh;
             position: relative;
             overflow: hidden;
+            touch-action: pan-y pinch-zoom;
         }
         
         .page {
@@ -143,6 +144,8 @@
             font-size: 60px;
             font-weight: 700;
             color: white;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
         }
         
         .timer-button.running {
@@ -190,6 +193,8 @@
             cursor: pointer;
             transition: all 0.2s ease;
             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
         }
         
         .reset-button {
@@ -444,68 +449,117 @@
             }
         }
 
-        // Audio context for countdown sounds
-        let audioContext;
-        let oscillator;
-        
-        function playCountdownSound(number) {
+        // Audio context for countdown sounds - FIXED for iOS
+        let audioContext = null;
+
+        function initAudioContext() {
             if (!audioContext) {
-                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                try {
+                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    // Resume context if it's suspended (iOS requirement)
+                    if (audioContext.state === 'suspended') {
+                        audioContext.resume();
+                    }
+                } catch (e) {
+                    console.log('AudioContext not supported');
+                }
             }
-            
-            // Create oscillator
-            oscillator = audioContext.createOscillator();
-            const gainNode = audioContext.createGain();
-            
-            // Different frequencies for different numbers
-            let frequency;
-            if (number <= 5) {
-                frequency = 800; // High pitch for last 5 seconds
-            } else if (number <= 10) {
-                frequency = 800; // Medium-high pitch
-            } else {
-                frequency = 800; // Lower pitch for higher numbers
-            }
-            
-            oscillator.type = 'sine';
-            oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime);
-            
-            // Configure volume envelope
-            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
-            
-            oscillator.connect(gainNode);
-            gainNode.connect(audioContext.destination);
-            
-            // Play the sound
-            oscillator.start();
-            oscillator.stop(audioContext.currentTime + 0.3);
+            return audioContext;
         }
 
-        // Speak the countdown number
+        function playCountdownSound(number) {
+            // Only play sounds for numbers 1-15
+            if (number > 15 || number < 1) return;
+            
+            try {
+                const context = initAudioContext();
+                if (!context) return;
+                
+                // Resume context if suspended (iOS requirement)
+                if (context.state === 'suspended') {
+                    context.resume();
+                }
+                
+                // Create oscillator
+                const oscillator = context.createOscillator();
+                const gainNode = context.createGain();
+                
+                // Different frequencies for different numbers
+                let frequency;
+                if (number <= 5) {
+                    frequency = 800; // High pitch for last 5 seconds
+                } else if (number <= 10) {
+                    frequency = 600; // Medium-high pitch
+                } else {
+                    frequency = 400; // Lower pitch for higher numbers
+                }
+                
+                oscillator.type = 'sine';
+                oscillator.frequency.setValueAtTime(frequency, context.currentTime);
+                
+                // Configure volume envelope
+                gainNode.gain.setValueAtTime(0.3, context.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, context.currentTime + 0.3);
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(context.destination);
+                
+                // Play the sound
+                oscillator.start();
+                oscillator.stop(context.currentTime + 0.3);
+            } catch (e) {
+                console.log('Audio playback error:', e);
+            }
+        }
+
+        // Speak the countdown number - FIXED for iOS
         function speakCountdown(number) {
+            // Only speak for numbers 1-15
+            if (number > 15 || number < 1) return;
+            
             if ('speechSynthesis' in window) {
+                // Cancel any ongoing speech
+                window.speechSynthesis.cancel();
+                
                 const utterance = new SpeechSynthesisUtterance(number.toString());
                 utterance.rate = 1.2;
                 utterance.pitch = 1;
-                utterance.volume = 0.7;
+                utterance.volume = 1;
+                utterance.lang = 'en-US';
+                
+                // iOS fix: use the default voice
+                const voices = window.speechSynthesis.getVoices();
+                if (voices.length > 0) {
+                    // Try to find an English voice
+                    const englishVoice = voices.find(voice => voice.lang.startsWith('en'));
+                    if (englishVoice) {
+                        utterance.voice = englishVoice;
+                    }
+                }
+                
                 window.speechSynthesis.speak(utterance);
             }
         }
 
-        // Update timer display and handle countdown
+        // Update timer display and handle countdown - MODIFIED to start at 15
         function updateTimerDisplay() {
             timerDisplay.textContent = timerSeconds;
             
-            // Show countdown text for last 10 seconds
-            if (timerSeconds <= 15) {
+            // Show countdown text for last 15 seconds (changed from 10)
+            if (timerSeconds <= 15 && timerSeconds > 0) {
                 countdownDisplay.textContent = `${timerSeconds}...`;
-                playCountdownSound(timerSeconds);
-                speakCountdown(timerSeconds);
+                
+                // iOS fix: play sounds and speak only when timer is running
+                if (isTimerRunning) {
+                    playCountdownSound(timerSeconds);
+                    speakCountdown(timerSeconds);
+                }
                 
                 // Add visual effect for countdown
                 if (timerSeconds <= 5) {
                     timerButton.classList.add('countdown');
+                } else {
+                    timerButton.classList.remove('countdown');
                 }
             } else {
                 countdownDisplay.textContent = '';
@@ -526,12 +580,26 @@
             });
         }
 
-        // Start/Stop timer when timer button is clicked
+        // Start/Stop timer when timer button is clicked - FIXED for iOS
         timerButton.addEventListener('click', () => {
+            // Initialize audio context on user interaction (iOS requirement)
+            initAudioContext();
+            
+            // Load voices on iOS (they need to be loaded on user interaction)
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.getVoices();
+            }
+            
             if (!isTimerRunning) {
                 // Start timer
                 isTimerRunning = true;
                 timerButton.classList.add('running');
+                
+                // Clear any existing interval
+                if (timerInterval) {
+                    clearInterval(timerInterval);
+                }
+                
                 timerInterval = setInterval(() => {
                     timerSeconds--;
                     updateTimerDisplay();
@@ -545,9 +613,17 @@
                         // Play completion sound
                         playCountdownSound(0);
                         if ('speechSynthesis' in window) {
+                            window.speechSynthesis.cancel();
                             const utterance = new SpeechSynthesisUtterance("Time's up!");
+                            utterance.rate = 1.2;
+                            utterance.pitch = 1;
+                            utterance.volume = 1;
+                            utterance.lang = 'en-US';
                             window.speechSynthesis.speak(utterance);
                         }
+                        
+                        // Remove countdown class
+                        timerButton.classList.remove('countdown');
                     }
                 }, 1000);
             }
@@ -560,7 +636,14 @@
                 timerButton.classList.remove('running');
                 timerButton.classList.remove('countdown');
                 countdownDisplay.textContent = 'Paused';
-                clearInterval(timerInterval);
+                if (timerInterval) {
+                    clearInterval(timerInterval);
+                    timerInterval = null;
+                }
+                // Cancel any speech
+                if ('speechSynthesis' in window) {
+                    window.speechSynthesis.cancel();
+                }
             }
         });
 
@@ -569,13 +652,36 @@
             isTimerRunning = false;
             timerButton.classList.remove('running');
             timerButton.classList.remove('countdown');
-            clearInterval(timerInterval);
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
             timerSeconds = 30;
             currentCycle = 0;
             updateTimerDisplay();
             updateTimerBatteries();
             countdownDisplay.textContent = '';
+            // Cancel any speech
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+            }
         });
+
+        // iOS-specific: Load voices when the page is ready
+        if ('speechSynthesis' in window) {
+            // Try to load voices immediately
+            window.speechSynthesis.getVoices();
+            
+            // Also listen for voices changed event (iOS sometimes needs this)
+            window.speechSynthesis.onvoiceschanged = () => {
+                window.speechSynthesis.getVoices();
+            };
+        }
+
+        // Add a click handler on the document to initialize audio context (iOS requirement)
+        document.addEventListener('click', () => {
+            initAudioContext();
+        }, { once: true });
 
         // Swipe navigation - improved for both directions
         const appContainer = document.getElementById('appContainer');
