@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Tap Counter & Timer</title>
     <style>
         * {
@@ -21,6 +21,8 @@
             padding: 20px;
             color: white;
             overflow: hidden;
+            -webkit-user-select: none;
+            user-select: none;
         }
         
         .app-container {
@@ -29,7 +31,7 @@
             height: 80vh;
             position: relative;
             overflow: hidden;
-            touch-action: pan-y pinch-zoom;
+            touch-action: pan-y;
         }
         
         .page {
@@ -69,8 +71,8 @@
         }
         
         .indicator-dot {
-            width: 8px;
-            height: 8px;
+            width: 10px;
+            height: 10px;
             border-radius: 50%;
             background-color: rgba(255, 255, 255, 0.3);
             transition: background-color 0.3s ease;
@@ -84,26 +86,32 @@
             display: flex;
             justify-content: space-between;
             width: 100%;
-            margin-top: 20px;
+            margin-top: 10px;
+        }
+        
+        .battery-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
         
         .battery {
-            width: 50px;
-            height: 120px;
+            width: 40px;
+            height: 100px;
             background-color: rgba(255, 255, 255, 0.2);
-            border-radius: 10px;
+            border-radius: 8px;
             position: relative;
             overflow: hidden;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
-            padding: 5px;
+            padding: 4px;
         }
         
         .battery-bar {
-            height: 18px;
-            background-color: rgba(255, 255, 255, 0.3);
-            border-radius: 4px;
+            height: 16px;
+            background-color: rgba(255, 255, 255, 0.2);
+            border-radius: 3px;
             transition: background-color 0.3s ease;
         }
         
@@ -119,21 +127,13 @@
             flex-grow: 1;
         }
         
-        .counter-display {
-            font-size: 40px;
-            font-weight: 600;
-            color: white;
-            text-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
-            margin-bottom: 10px;
-            opacity: 0.8;
-        }
-        
         .tap-button, .timer-button {
-            width: 200px;
-            height: 200px;
+            width: 180px;
+            height: 180px;
             border-radius: 50%;
             background: rgba(255, 255, 255, 0.2);
             backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
             border: 2px solid rgba(255, 255, 255, 0.3);
             display: flex;
             align-items: center;
@@ -174,27 +174,30 @@
             display: flex;
             justify-content: space-between;
             width: 100%;
-            margin-bottom: 30px;
+            margin-bottom: 20px;
+            gap: 10px;
         }
         
         .timer-controls {
             display: flex;
             justify-content: space-between;
             width: 100%;
-            margin-bottom: 30px;
+            margin-bottom: 20px;
+            gap: 10px;
         }
         
         .control-button {
-            padding: 15px 30px;
+            padding: 12px 25px;
             border-radius: 50px;
             border: none;
-            font-size: 18px;
+            font-size: 16px;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.2s ease;
             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
             -webkit-tap-highlight-color: transparent;
             touch-action: manipulation;
+            flex: 1;
         }
         
         .reset-button {
@@ -218,32 +221,33 @@
         
         .instructions {
             text-align: center;
-            margin-top: 20px;
-            font-size: 16px;
+            margin-top: 10px;
+            font-size: 14px;
             opacity: 0.8;
             max-width: 300px;
         }
         
         .battery-label {
             text-align: center;
-            margin-top: 10px;
-            font-size: 14px;
+            margin-top: 5px;
+            font-size: 11px;
             opacity: 0.8;
         }
         
         .page-title {
-            font-size: 24px;
+            font-size: 22px;
             font-weight: 600;
-            margin-bottom: 10px;
+            margin-bottom: 5px;
             text-align: center;
         }
         
         .countdown-display {
-            font-size: 18px;
+            font-size: 20px;
             margin-top: 10px;
-            min-height: 25px;
-            font-weight: 600;
+            min-height: 30px;
+            font-weight: 700;
             text-align: center;
+            color: #ff6b6b;
         }
     </style>
 </head>
@@ -375,18 +379,17 @@
     </div>
     
     <div class="instructions">
-        Swipe in any direction to switch between Counter and Timer
+        Swipe to switch between Counter and Timer
     </div>
 
     <script>
-        // Counter functionality
+        // ===== COUNTER FUNCTIONALITY =====
         let count = 0;
         const circleCounter = document.getElementById('circleCounter');
         const tapButton = document.getElementById('tapButton');
         const resetButton = document.getElementById('resetButton');
         const decreaseButton = document.getElementById('decreaseButton');
         
-        // Create array of all counter battery bars (4 batteries with 5 bars each)
         const counterBatteryBars = [];
         for (let i = 1; i <= 4; i++) {
             for (let j = 1; j <= 5; j++) {
@@ -394,10 +397,8 @@
             }
         }
 
-        // Update counter battery bars based on count (each bar = 5 taps)
         function updateCounterBatteries() {
             const activeBars = Math.floor(count / 5);
-            
             counterBatteryBars.forEach((bar, index) => {
                 if (index < activeBars) {
                     bar.classList.add('active');
@@ -407,21 +408,19 @@
             });
         }
 
-        // Increase count when tap button is clicked
-        tapButton.addEventListener('click', () => {
+        tapButton.addEventListener('click', (e) => {
+            e.preventDefault();
             count++;
             circleCounter.textContent = count;
             updateCounterBatteries();
         });
 
-        // Reset count when reset button is clicked
         resetButton.addEventListener('click', () => {
             count = 0;
             circleCounter.textContent = count;
             updateCounterBatteries();
         });
 
-        // Decrease count when decrease button is clicked
         decreaseButton.addEventListener('click', () => {
             if (count > 0) {
                 count--;
@@ -430,7 +429,7 @@
             }
         });
 
-        // Timer functionality
+        // ===== TIMER FUNCTIONALITY =====
         let timerSeconds = 30;
         let timerInterval = null;
         let isTimerRunning = false;
@@ -441,7 +440,6 @@
         const timerResetButton = document.getElementById('timerResetButton');
         const stopButton = document.getElementById('stopButton');
         
-        // Create array of all timer battery bars (4 batteries with 5 bars each)
         const timerBatteryBars = [];
         for (let i = 1; i <= 4; i++) {
             for (let j = 1; j <= 5; j++) {
@@ -449,113 +447,24 @@
             }
         }
 
-        // Audio context for countdown sounds - FIXED for iOS
-        let audioContext = null;
-
-        function initAudioContext() {
-            if (!audioContext) {
-                try {
-                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                    // Resume context if it's suspended (iOS requirement)
-                    if (audioContext.state === 'suspended') {
-                        audioContext.resume();
-                    }
-                } catch (e) {
-                    console.log('AudioContext not supported');
-                }
-            }
-            return audioContext;
-        }
-
-        function playCountdownSound(number) {
-            // Only play sounds for numbers 1-15
-            if (number > 15 || number < 1) return;
-            
-            try {
-                const context = initAudioContext();
-                if (!context) return;
-                
-                // Resume context if suspended (iOS requirement)
-                if (context.state === 'suspended') {
-                    context.resume();
-                }
-                
-                // Create oscillator
-                const oscillator = context.createOscillator();
-                const gainNode = context.createGain();
-                
-                // Different frequencies for different numbers
-                let frequency;
-                if (number <= 5) {
-                    frequency = 800; // High pitch for last 5 seconds
-                } else if (number <= 10) {
-                    frequency = 600; // Medium-high pitch
+        function updateTimerBatteries() {
+            const activeBars = currentCycle % 20;
+            timerBatteryBars.forEach((bar, index) => {
+                if (index < activeBars) {
+                    bar.classList.add('active');
                 } else {
-                    frequency = 400; // Lower pitch for higher numbers
+                    bar.classList.remove('active');
                 }
-                
-                oscillator.type = 'sine';
-                oscillator.frequency.setValueAtTime(frequency, context.currentTime);
-                
-                // Configure volume envelope
-                gainNode.gain.setValueAtTime(0.3, context.currentTime);
-                gainNode.gain.exponentialRampToValueAtTime(0.01, context.currentTime + 0.3);
-                
-                oscillator.connect(gainNode);
-                gainNode.connect(context.destination);
-                
-                // Play the sound
-                oscillator.start();
-                oscillator.stop(context.currentTime + 0.3);
-            } catch (e) {
-                console.log('Audio playback error:', e);
-            }
+            });
         }
 
-        // Speak the countdown number - FIXED for iOS
-        function speakCountdown(number) {
-            // Only speak for numbers 1-15
-            if (number > 15 || number < 1) return;
-            
-            if ('speechSynthesis' in window) {
-                // Cancel any ongoing speech
-                window.speechSynthesis.cancel();
-                
-                const utterance = new SpeechSynthesisUtterance(number.toString());
-                utterance.rate = 1.2;
-                utterance.pitch = 1;
-                utterance.volume = 1;
-                utterance.lang = 'en-US';
-                
-                // iOS fix: use the default voice
-                const voices = window.speechSynthesis.getVoices();
-                if (voices.length > 0) {
-                    // Try to find an English voice
-                    const englishVoice = voices.find(voice => voice.lang.startsWith('en'));
-                    if (englishVoice) {
-                        utterance.voice = englishVoice;
-                    }
-                }
-                
-                window.speechSynthesis.speak(utterance);
-            }
-        }
-
-        // Update timer display and handle countdown - MODIFIED to start at 15
         function updateTimerDisplay() {
             timerDisplay.textContent = timerSeconds;
             
-            // Show countdown text for last 15 seconds (changed from 10)
+            // Countdown starts at 15 seconds
             if (timerSeconds <= 15 && timerSeconds > 0) {
-                countdownDisplay.textContent = `${timerSeconds}...`;
+                countdownDisplay.textContent = `⏱️ ${timerSeconds}...`;
                 
-                // iOS fix: play sounds and speak only when timer is running
-                if (isTimerRunning) {
-                    playCountdownSound(timerSeconds);
-                    speakCountdown(timerSeconds);
-                }
-                
-                // Add visual effect for countdown
                 if (timerSeconds <= 5) {
                     timerButton.classList.add('countdown');
                 } else {
@@ -567,35 +476,19 @@
             }
         }
 
-        // Update timer battery bars (each bar = 30 seconds in a cycle)
-        function updateTimerBatteries() {
-            const activeBars = currentCycle % 20; // 4 batteries × 5 bars = 20 total bars
-            
-            timerBatteryBars.forEach((bar, index) => {
-                if (index < activeBars) {
-                    bar.classList.add('active');
-                } else {
-                    bar.classList.remove('active');
-                }
-            });
-        }
-
-        // Start/Stop timer when timer button is clicked - FIXED for iOS
-        timerButton.addEventListener('click', () => {
-            // Initialize audio context on user interaction (iOS requirement)
-            initAudioContext();
-            
-            // Load voices on iOS (they need to be loaded on user interaction)
-            if ('speechSynthesis' in window) {
-                window.speechSynthesis.getVoices();
-            }
+        // Start timer
+        timerButton.addEventListener('click', (e) => {
+            e.preventDefault();
             
             if (!isTimerRunning) {
-                // Start timer
+                // If timer is at 0, reset it first
+                if (timerSeconds === 0) {
+                    timerSeconds = 30;
+                }
+                
                 isTimerRunning = true;
                 timerButton.classList.add('running');
                 
-                // Clear any existing interval
                 if (timerInterval) {
                     clearInterval(timerInterval);
                 }
@@ -604,50 +497,39 @@
                     timerSeconds--;
                     updateTimerDisplay();
                     
-                    // When timer reaches 0, reset to 30 and increment cycle
                     if (timerSeconds === 0) {
                         timerSeconds = 30;
                         currentCycle++;
                         updateTimerBatteries();
-                        
-                        // Play completion sound
-                        playCountdownSound(0);
-                        if ('speechSynthesis' in window) {
-                            window.speechSynthesis.cancel();
-                            const utterance = new SpeechSynthesisUtterance("Time's up!");
-                            utterance.rate = 1.2;
-                            utterance.pitch = 1;
-                            utterance.volume = 1;
-                            utterance.lang = 'en-US';
-                            window.speechSynthesis.speak(utterance);
-                        }
-                        
-                        // Remove countdown class
                         timerButton.classList.remove('countdown');
+                        
+                        // Show "Time's up!" message
+                        countdownDisplay.textContent = '⏰ Time\'s Up!';
+                        
+                        // Vibrate if available
+                        if (navigator.vibrate) {
+                            navigator.vibrate([200, 100, 200]);
+                        }
                     }
                 }, 1000);
             }
         });
 
-        // Stop timer when stop button is clicked
+        // Stop timer
         stopButton.addEventListener('click', () => {
             if (isTimerRunning) {
                 isTimerRunning = false;
                 timerButton.classList.remove('running');
                 timerButton.classList.remove('countdown');
-                countdownDisplay.textContent = 'Paused';
+                countdownDisplay.textContent = '⏸️ Paused';
                 if (timerInterval) {
                     clearInterval(timerInterval);
                     timerInterval = null;
                 }
-                // Cancel any speech
-                if ('speechSynthesis' in window) {
-                    window.speechSynthesis.cancel();
-                }
             }
         });
 
-        // Reset timer when reset button is clicked
+        // Reset timer
         timerResetButton.addEventListener('click', () => {
             isTimerRunning = false;
             timerButton.classList.remove('running');
@@ -661,29 +543,9 @@
             updateTimerDisplay();
             updateTimerBatteries();
             countdownDisplay.textContent = '';
-            // Cancel any speech
-            if ('speechSynthesis' in window) {
-                window.speechSynthesis.cancel();
-            }
         });
 
-        // iOS-specific: Load voices when the page is ready
-        if ('speechSynthesis' in window) {
-            // Try to load voices immediately
-            window.speechSynthesis.getVoices();
-            
-            // Also listen for voices changed event (iOS sometimes needs this)
-            window.speechSynthesis.onvoiceschanged = () => {
-                window.speechSynthesis.getVoices();
-            };
-        }
-
-        // Add a click handler on the document to initialize audio context (iOS requirement)
-        document.addEventListener('click', () => {
-            initAudioContext();
-        }, { once: true });
-
-        // Swipe navigation - improved for both directions
+        // ===== SWIPE NAVIGATION =====
         const appContainer = document.getElementById('appContainer');
         const page1 = document.getElementById('page1');
         const page2 = document.getElementById('page2');
@@ -695,22 +557,20 @@
 
         appContainer.addEventListener('touchstart', (e) => {
             startX = e.touches[0].clientX;
-        });
+        }, { passive: true });
 
         appContainer.addEventListener('touchend', (e) => {
             const endX = e.changedTouches[0].clientX;
             const diffX = startX - endX;
             
-            // Minimum swipe distance
             if (Math.abs(diffX) > 50) {
-                // Always switch to the other page regardless of swipe direction
                 if (currentPage === 1) {
                     switchPage(2);
                 } else {
                     switchPage(1);
                 }
             }
-        });
+        }, { passive: true });
 
         function switchPage(pageNumber) {
             if (pageNumber === 1) {
@@ -732,10 +592,13 @@
             }
         }
 
-        // Initialize both pages
+        // ===== INITIALIZE =====
         updateCounterBatteries();
         updateTimerDisplay();
         updateTimerBatteries();
+        
+        console.log('App initialized successfully!');
+        console.log('Countdown will start at 15 seconds');
     </script>
 </body>
 </html>
