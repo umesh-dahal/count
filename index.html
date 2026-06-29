@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="de">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
@@ -9,7 +9,7 @@
   <meta name="apple-mobile-web-app-title" content="Timer" />
   <meta name="theme-color" content="#111827" />
 
-  <title>30s Battery Timer</title>
+  <title>30s Battery Timer – Deutsch</title>
 
   <style>
     * {
@@ -305,48 +305,48 @@
     <div class="glow"></div>
 
     <header class="header">
-      <div class="eyebrow">Focus Timer</div>
-      <h1>30-Second Battery Timer</h1>
-      <div class="subtitle">Tap the circle to start, pause, and resume.</div>
+      <div class="eyebrow">Fokus Timer</div>
+      <h1>30-Sekunden Batterie-Timer</h1>
+      <div class="subtitle">Tippe auf den Kreis, um zu starten, pausieren und fortzusetzen.</div>
     </header>
 
-    <section class="battery-grid" id="batteryGrid" aria-label="Battery progress">
+    <section class="battery-grid" id="batteryGrid" aria-label="Batterie-Fortschritt">
       <div class="battery-card">
         <div class="battery-top"></div>
         <div class="battery" id="battery1"></div>
-        <div class="battery-label">Battery 1</div>
+        <div class="battery-label">Batterie 1</div>
       </div>
       <div class="battery-card">
         <div class="battery-top"></div>
         <div class="battery" id="battery2"></div>
-        <div class="battery-label">Battery 2</div>
+        <div class="battery-label">Batterie 2</div>
       </div>
       <div class="battery-card">
         <div class="battery-top"></div>
         <div class="battery" id="battery3"></div>
-        <div class="battery-label">Battery 3</div>
+        <div class="battery-label">Batterie 3</div>
       </div>
       <div class="battery-card">
         <div class="battery-top"></div>
         <div class="battery" id="battery4"></div>
-        <div class="battery-label">Battery 4</div>
+        <div class="battery-label">Batterie 4</div>
       </div>
     </section>
 
     <section class="timer-zone">
-      <button class="timer-button" id="timerButton" type="button" aria-label="Start pause resume timer">
+      <button class="timer-button" id="timerButton" type="button" aria-label="Start Pause Fortsetzen Timer">
         <span class="timer-number" id="timerDisplay">30</span>
-        <span class="timer-small" id="timerSmall">Tap to start</span>
+        <span class="timer-small" id="timerSmall">Zum Starten tippen</span>
       </button>
-      <div class="status-text" id="statusText">Ready</div>
-      <div class="voice-note" id="voiceNote">Voice counts every second from 30 to 1.</div>
+      <div class="status-text" id="statusText">Bereit</div>
+      <div class="voice-note" id="voiceNote">Sprachausgabe zählt jede Sekunde von 30 bis 1.</div>
     </section>
 
     <section class="controls">
-      <button class="reset-button" id="resetButton" type="button">Reset</button>
+      <button class="reset-button" id="resetButton" type="button">Zurücksetzen</button>
     </section>
 
-    <div class="hint">Every completed 30 seconds fills one bar. 4 batteries × 6 bars = 24 rounds.</div>
+    <div class="hint">Jede abgeschlossene 30-Sekunden-Runde füllt einen Balken. 4 Batterien × 6 Balken = 24 Runden.</div>
   </main>
 
   <script>
@@ -354,13 +354,16 @@
     const BATTERY_COUNT = 4;
     const BARS_PER_BATTERY = 6;
     const TOTAL_BARS = BATTERY_COUNT * BARS_PER_BATTERY;
+    const SPEECH_RATE = 1.5; // 1.25x speed
 
     let timerSeconds = ROUND_SECONDS;
     let completedRounds = 0;
-    let timerInterval = null;
     let isRunning = false;
+    let isWaitingForSpeech = false;
     let hasSpokenReady = false;
     let selectedVoice = null;
+    let speechQueue = [];
+    let isSpeaking = false;
 
     const timerButton = document.getElementById('timerButton');
     const timerDisplay = document.getElementById('timerDisplay');
@@ -399,7 +402,7 @@
 
     function prepareSpeech() {
       if (!('speechSynthesis' in window) || typeof SpeechSynthesisUtterance === 'undefined') {
-        voiceNote.textContent = 'Voice is not supported in this browser.';
+        voiceNote.textContent = 'Sprache wird in diesem Browser nicht unterstützt.';
         return false;
       }
 
@@ -415,40 +418,117 @@
       }
     }
 
-    function speakText(text, rate = 1.15) {
-      if (!prepareSpeech()) return;
-
+    function processSpeechQueue() {
+      if (isSpeaking || speechQueue.length === 0) {
+        // If queue is empty and we're waiting for speech, we can continue
+        if (!isSpeaking && speechQueue.length === 0 && isWaitingForSpeech) {
+          isWaitingForSpeech = false;
+          // Speech is done, continue to next number
+          countdownNext();
+        }
+        return;
+      }
+      
+      isSpeaking = true;
+      const text = speechQueue.shift();
+      
       try {
-        window.speechSynthesis.cancel();
-
-        const utterance = new SpeechSynthesisUtterance(String(text));
+        const utterance = new SpeechSynthesisUtterance(text);
         utterance.lang = 'de-DE';
-        utterance.rate = rate;
+        utterance.rate = SPEECH_RATE;
         utterance.pitch = 1;
         utterance.volume = 1;
 
         loadVoices();
         if (selectedVoice) utterance.voice = selectedVoice;
 
+        utterance.onend = function() {
+          isSpeaking = false;
+          // If we're waiting for speech to finish, trigger next countdown
+          if (isWaitingForSpeech) {
+            isWaitingForSpeech = false;
+            countdownNext();
+          }
+          processSpeechQueue();
+        };
+
         utterance.onerror = function(event) {
           console.log('Speech error:', event.error);
-          voiceNote.textContent = 'Voice blocked. Tap again or check Silent Mode.';
+          isSpeaking = false;
+          if (isWaitingForSpeech) {
+            isWaitingForSpeech = false;
+            countdownNext();
+          }
+          processSpeechQueue();
         };
 
         window.speechSynthesis.speak(utterance);
+      } catch (error) {
+        console.log('Speech error:', error);
+        isSpeaking = false;
+        if (isWaitingForSpeech) {
+          isWaitingForSpeech = false;
+          countdownNext();
+        }
+        processSpeechQueue();
+      }
+    }
+
+    function speakText(text) {
+      if (!prepareSpeech()) return;
+
+      try {
+        window.speechSynthesis.cancel();
+        isSpeaking = false;
+        speechQueue = [];
+        
+        speechQueue.push(text);
+        processSpeechQueue();
       } catch (error) {
         console.log('Speech error:', error);
       }
     }
 
     function speakNumber(number) {
-      if (number <= 0 || number > ROUND_SECONDS) return;
+      if (number <= 0 || number > ROUND_SECONDS) {
+        // If number is 0 or invalid, just continue
+        if (isWaitingForSpeech) {
+          isWaitingForSpeech = false;
+          countdownNext();
+        }
+        return;
+      }
 
-      let rate = 1.18;
-      if (number <= 5) rate = 0.88;
-      else if (number <= 15) rate = 1.02;
+      // Deutsche Zahlen 1-30
+      const germanNumbers = {
+        1: 'eins', 2: 'zwei', 3: 'drei', 4: 'vier', 5: 'fünf',
+        6: 'sechs', 7: 'sieben', 8: 'acht', 9: 'neun', 10: 'zehn',
+        11: 'elf', 12: 'zwölf', 13: 'dreizehn', 14: 'vierzehn', 15: 'fünfzehn',
+        16: 'sechzehn', 17: 'siebzehn', 18: 'achtzehn', 19: 'neunzehn', 20: 'zwanzig',
+        21: 'einundzwanzig', 22: 'zweiundzwanzig', 23: 'dreiundzwanzig', 24: 'vierundzwanzig', 25: 'fünfundzwanzig',
+        26: 'sechsundzwanzig', 27: 'siebenundzwanzig', 28: 'achtundzwanzig', 29: 'neunundzwanzig', 30: 'dreißig'
+      };
 
-      speakText(number.toString(), rate);
+      const word = germanNumbers[number] || number.toString();
+      
+      if (!prepareSpeech()) return;
+
+      try {
+        // Don't cancel if we're just adding to queue
+        if (!isSpeaking) {
+          window.speechSynthesis.cancel();
+          speechQueue = [];
+        }
+        
+        speechQueue.push(word);
+        processSpeechQueue();
+      } catch (error) {
+        console.log('Speech error:', error);
+        if (isWaitingForSpeech) {
+          isWaitingForSpeech = false;
+          countdownNext();
+        }
+      }
     }
 
     function updateBatteryBars() {
@@ -473,15 +553,15 @@
 
       if (isRunning) {
         timerButton.classList.add('running');
-        timerSmall.textContent = 'Tap to pause';
-        statusText.textContent = timerSeconds <= 5 ? 'Almost there' : 'Running';
+        timerSmall.textContent = 'Zum Pausieren tippen';
+        statusText.textContent = timerSeconds <= 5 ? 'Fast geschafft' : 'Läuft';
       } else if (timerSeconds !== ROUND_SECONDS) {
         timerButton.classList.add('paused');
-        timerSmall.textContent = 'Tap to resume';
-        statusText.textContent = 'Paused';
+        timerSmall.textContent = 'Zum Fortsetzen tippen';
+        statusText.textContent = 'Pausiert';
       } else {
-        timerSmall.textContent = 'Tap to start';
-        statusText.textContent = 'Ready';
+        timerSmall.textContent = 'Zum Starten tippen';
+        statusText.textContent = 'Bereit';
       }
 
       if (isRunning && timerSeconds <= 5) {
@@ -489,27 +569,23 @@
       }
     }
 
-    function startTimer() {
-      if (timerInterval) clearInterval(timerInterval);
+    function countdownNext() {
+      if (!isRunning) return;
 
-      isRunning = true;
-      updateTimerVisual();
+      timerSeconds--;
 
-      timerInterval = setInterval(() => {
-        if (!isRunning) return;
-
-        timerSeconds--;
-
-        if (timerSeconds > 0) {
-          updateTimerVisual();
-          speakNumber(timerSeconds);
-          return;
-        }
-
+      if (timerSeconds > 0) {
+        updateTimerVisual();
+        // Speak the number and wait for it to finish
+        isWaitingForSpeech = true;
+        speakNumber(timerSeconds);
+        // The next countdown will be triggered when speech finishes
+      } else {
+        // Timer reached 0
         timerDisplay.textContent = '0';
-        statusText.textContent = "Time's up";
+        statusText.textContent = 'Zeit ist um!';
         timerButton.classList.remove('ending');
-        speakText("Zeit ist um", 1.0);
+        speakText('Zeit ist um!');
 
         completedRounds++;
         updateBatteryBars();
@@ -518,58 +594,78 @@
           if (!isRunning) return;
           timerSeconds = ROUND_SECONDS;
           updateTimerVisual();
+          // Start the next round with speaking
+          isWaitingForSpeech = true;
           speakNumber(timerSeconds);
-        }, 350);
-      }, 1000);
+        }, 400);
+      }
+    }
+
+    function startTimer() {
+      isRunning = true;
+      updateTimerVisual();
+      
+      // Start the countdown with the current number
+      isWaitingForSpeech = true;
+      speakNumber(timerSeconds);
     }
 
     async function handleTimerTap() {
       prepareSpeech();
-      voiceNote.textContent = 'Voice active';
+      voiceNote.textContent = 'Sprachausgabe aktiv (1.25x)';
 
       setTimeout(() => {
-        if (voiceNote.textContent === 'Voice active') {
-          voiceNote.textContent = 'Voice counts every second from 30 to 1.';
+        if (voiceNote.textContent === 'Sprachausgabe aktiv (1.25x)') {
+          voiceNote.textContent = 'Sprachausgabe zählt jede Sekunde von 30 bis 1.';
         }
       }, 1200);
 
       if (!isRunning) {
         if (!hasSpokenReady && timerSeconds === ROUND_SECONDS) {
-          speakText('Los Gehts', 1.0);
+          speakText('Los geht\'s');
           hasSpokenReady = true;
-          setTimeout(() => speakNumber(timerSeconds), 650);
+          setTimeout(() => {
+            if (isRunning) {
+              isWaitingForSpeech = true;
+              speakNumber(timerSeconds);
+            }
+          }, 400);
         } else {
-          speakNumber(timerSeconds);
+          if (!isWaitingForSpeech) {
+            isWaitingForSpeech = true;
+            speakNumber(timerSeconds);
+          }
         }
 
         startTimer();
       } else {
         isRunning = false;
-        if (timerInterval) {
-          clearInterval(timerInterval);
-          timerInterval = null;
+        isWaitingForSpeech = false;
+        if ('speechSynthesis' in window) {
+          window.speechSynthesis.cancel();
+          isSpeaking = false;
+          speechQueue = [];
         }
-        if ('speechSynthesis' in window) window.speechSynthesis.cancel();
         updateTimerVisual();
       }
     }
 
     function resetTimer() {
       isRunning = false;
+      isWaitingForSpeech = false;
 
-      if (timerInterval) {
-        clearInterval(timerInterval);
-        timerInterval = null;
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        isSpeaking = false;
+        speechQueue = [];
       }
-
-      if ('speechSynthesis' in window) window.speechSynthesis.cancel();
 
       timerSeconds = ROUND_SECONDS;
       completedRounds = 0;
       hasSpokenReady = false;
       updateBatteryBars();
       updateTimerVisual();
-      voiceNote.textContent = 'Voice counts every second from 30 to 1.';
+      voiceNote.textContent = 'Sprachausgabe zählt jede Sekunde von 30 bis 1.';
     }
 
     timerButton.addEventListener('click', handleTimerTap);
