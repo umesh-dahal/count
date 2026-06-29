@@ -354,7 +354,25 @@
     const BATTERY_COUNT = 4;
     const BARS_PER_BATTERY = 6;
     const TOTAL_BARS = BATTERY_COUNT * BARS_PER_BATTERY;
-    const SPEECH_RATE = 1.20; // 1.25x speed
+
+    // Browser detection for speech rate adjustment
+    const isChrome = /Chrome/.test(navigator.userAgent) && /Google Inc/.test(navigator.vendor);
+    const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+    const isFirefox = /Firefox/.test(navigator.userAgent);
+    
+    // Adjust speech rate based on browser
+    // Chrome voices are naturally faster, so use a lower multiplier
+    // Safari voices are slower, so use a higher multiplier
+    let SPEECH_RATE = 1.0;
+    if (isChrome) {
+      SPEECH_RATE = 0.9; // Chrome voices are fast, slow down slightly
+    } else if (isSafari) {
+      SPEECH_RATE = 1.3; // Safari voices are slow, speed up
+    } else if (isFirefox) {
+      SPEECH_RATE = 1.1; // Firefox is somewhere in between
+    } else {
+      SPEECH_RATE = 1.0; // Default
+    }
 
     let timerSeconds = ROUND_SECONDS;
     let completedRounds = 0;
@@ -612,13 +630,20 @@
 
     async function handleTimerTap() {
       prepareSpeech();
-      voiceNote.textContent = 'Sprachausgabe aktiv (1.25x)';
+      
+      let browserInfo = '';
+      if (isChrome) browserInfo = 'Chrome (0.9x)';
+      else if (isSafari) browserInfo = 'Safari (1.3x)';
+      else if (isFirefox) browserInfo = 'Firefox (1.1x)';
+      else browserInfo = 'Standard (1.0x)';
+      
+      voiceNote.textContent = `Sprachausgabe aktiv - ${browserInfo}`;
 
       setTimeout(() => {
-        if (voiceNote.textContent === 'Sprachausgabe aktiv (1.25x)') {
+        if (voiceNote.textContent.includes('Sprachausgabe aktiv')) {
           voiceNote.textContent = 'Sprachausgabe zählt jede Sekunde von 30 bis 1.';
         }
-      }, 1200);
+      }, 1500);
 
       if (!isRunning) {
         if (!hasSpokenReady && timerSeconds === ROUND_SECONDS) {
